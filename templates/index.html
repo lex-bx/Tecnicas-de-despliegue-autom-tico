@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Task Manager</h1>
+
+        <form action="/add" method="POST" class="task-form">
+            <input type="text" name="title" placeholder="Título de la tarea" required>
+            <input type="text" name="description" placeholder="Descripción (opcional)">
+            <button type="submit">Agregar</button>
+        </form>
+
+        <div class="task-list">
+            <h2>Tareas</h2>
+            {% if tasks %}
+                <ul>
+                {% for task in tasks %}
+                    <li class="task-item {% if task.completed %}completed{% endif %}">
+                        <div class="task-info">
+                            <strong>{{ task.title }}</strong>
+                            {% if task.description %}
+                                <p>{{ task.description }}</p>
+                            {% endif %}
+                            <small>Creada: {{ task.created_at }}</small>
+                        </div>
+                        <div class="task-actions">
+                            {% if not task.completed %}
+                                <a href="/complete/{{ task.id }}" class="btn-complete">Completar</a>
+                            {% endif %}
+                            <a href="/delete/{{ task.id }}" class="btn-delete">Eliminar</a>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p class="empty">No hay tareas aún. ¡Agrega una!</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
