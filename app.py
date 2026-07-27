@@ -31,6 +31,20 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+@app.route('/health')
+def health():
+    conn = get_db()
+    journal_mode = conn.execute('PRAGMA journal_mode').fetchone()[0]
+    busy_timeout = conn.execute('PRAGMA busy_timeout').fetchone()[0]
+    conn.close()
+    return jsonify({
+        'status': 'ok',
+        'database': DB_PATH,
+        'journal_mode': journal_mode,
+        'busy_timeout_ms': busy_timeout,
+        'wal_enabled': journal_mode == 'wal'
+    })
+
 @app.route('/')
 def index():
     conn = get_db()
