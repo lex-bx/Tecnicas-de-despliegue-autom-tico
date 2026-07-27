@@ -1,20 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import sqlite3
 import os
-from datetime import datetime
 
 app = Flask(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'database.db')
+DB_DIR = os.environ.get('DB_DIR', os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(DB_DIR, 'database.db')
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=5000')
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            description TEXT,
+            description TEXT DEFAULT '',
             completed INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -65,10 +67,22 @@ def update_task(task_id):
     if not task:
         conn.close()
         return jsonify({'error': 'Task not found'}), 404
+    fields = []
+    values = []
     if 'completed' in data:
-        conn.execute('UPDATE tasks SET completed = ? WHERE id = ?', (data['completed'], task_id))
+        fields.append('completed = ?')
+        values.append(data['completed'])
     if 'title' in data:
-        conn.execute('UPDATE tasks SET title = ? WHERE id = ?', (data['title'], task_id))
+        fields.append('title = ?')
+        values.append(data['title'])
+    if 'description' in data:
+        fields.append('description = ?')
+        values.append(data['description'])
+    if not fields:
+        conn.close()
+        return jsonify({'error': 'No fields to update'}), 400
+    values.append(task_id)
+    conn.execute(f'UPDATE tasks SET {", ".join(fields)} WHERE id = ?', values)
     conn.commit()
     conn.close()
     return jsonify({'message': 'Task updated'})
@@ -83,8 +97,8 @@ def delete_task(task_id):
 
 @app.route('/add', methods=['POST'])
 def add_task():
-    title = request.form.get('title')
-    description = request.form.get('description')
+    title = request.form.get('title', '').strip()
+    description = request.form.get('description', '').strip()
     if title:
         conn = get_db()
         conn.execute('INSERT INTO tasks (title, description) VALUES (?, ?)', (title, description))

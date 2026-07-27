@@ -36,11 +36,13 @@ Write-Host "VM creada. IP Publica: $IP" -ForegroundColor Green
 
 # Ejecutar script de configuracion en la VM
 Write-Host "Configurando servidor..." -ForegroundColor Yellow
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptContent = Get-Content -Raw "$ScriptDir\setup-app.sh"
 az vm run-command invoke `
     --resource-group $ResourceGroup `
     --name $VmName `
     --command-id RunShellScript `
-    --scripts @setup-app.sh
+    --scripts "$ScriptContent"
 
 Write-Host "=== Configuracion completada ===" -ForegroundColor Green
 Write-Host "Accede a la aplicacion en: http://$IP" -ForegroundColor Cyan

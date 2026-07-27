@@ -25,7 +25,25 @@ jobs:
 
       - name: Run tests
         run: |
-          python -c "from app import app; print('App loaded successfully')"
+          python -c "
+import os, tempfile
+os.environ['DB_DIR'] = tempfile.gettempdir()
+from app import app
+app.config['TESTING'] = True
+with app.test_client() as client:
+    resp = client.get('/api/tasks')
+    assert resp.status_code == 200
+    resp = client.post('/api/tasks', json={'title': 'Test'})
+    assert resp.status_code == 201
+    resp = client.get('/api/tasks')
+    data = resp.get_json()
+    assert len(data) == 1
+    assert data[0]['title'] == 'Test'
+print('All tests passed')
+"
+
+      - name: Clean up test artifacts
+        run: rm -f database.db
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3

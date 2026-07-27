@@ -20,9 +20,15 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /var/www/app
+            set -e
+            APP_DIR="/var/www/app"
+            if [ ! -d "$APP_DIR/.git" ]; then
+              sudo mkdir -p "$APP_DIR"
+              sudo chown $USER:$USER "$APP_DIR"
+              git clone https://github.com/lex-bx/Tecnicas-de-despliegue-autom-tico.git "$APP_DIR"
+            fi
+            cd "$APP_DIR"
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
             sudo systemctl restart app
-            sudo systemctl restart nginx
